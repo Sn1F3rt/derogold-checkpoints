@@ -89,7 +89,7 @@ async def get_block_hash_by_height(height: int) -> dict:
         "height": height,
     }
 
-    return (await _make_post_request("get_block_header_by_height", **params))[
+    return (await _make_post_request("getblockheaderbyheight", **params))[
         "result"
     ]["block_header"]["hash"]
 
