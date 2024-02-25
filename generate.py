@@ -1,3 +1,4 @@
+import csv
 import json
 import logging
 import asyncio
@@ -16,13 +17,20 @@ else:
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 try:
-    from config import DAEMON_RPC_HOST, DAEMON_RPC_PORT, DAEMON_RPC_SSL, BLOCK_STEP
+    from config import (
+        DAEMON_RPC_HOST,
+        DAEMON_RPC_PORT,
+        DAEMON_RPC_SSL,
+        BLOCK_STEP,
+        OUTPUT_FILE_NAME,
+    )
 
 except ImportError:
     DAEMON_RPC_HOST = "localhost"
     DAEMON_RPC_PORT = 6969
     DAEMON_RPC_SSL = False
-    BLOCK_STEP = 2500
+    BLOCK_STEP = 1
+    OUTPUT_FILE_NAME = "checkpoints.csv"
 
 DAEMON_RPC_URL = (
     f"http{'s' if DAEMON_RPC_SSL else ''}://{DAEMON_RPC_HOST}:{DAEMON_RPC_PORT}"
@@ -89,29 +97,30 @@ async def get_block_hash_by_height(height: int) -> dict:
         "height": height,
     }
 
-    return (await _make_post_request("getblockheaderbyheight", **params))[
-        "result"
-    ]["block_header"]["hash"]
+    return (await _make_post_request("getblockheaderbyheight", **params))["result"][
+        "block_header"
+    ]["hash"]
 
 
 async def generate_checkpoints() -> None:
     log = logging.getLogger()
     log.info("Generating checkpoints...")
 
-    height = await get_height()
-    log.info(f"Current height: {height}")
+    current_height = await get_height()
+    log.info(f"Current height: {current_height}")
 
     checkpoints = []
 
-    for i in range(0, height, BLOCK_STEP):
-        block_hash = await get_block_hash_by_height(i)
-        checkpoints.append(f'ADD_CHECKPOINT({i}, "{block_hash}");')
-        log.info(f"Generated checkpoint for height {i}")
+    for height in range(0, current_height, BLOCK_STEP):
+        block_hash = await get_block_hash_by_height(height)
+        checkpoints.append((height, block_hash))
+        log.info(f"Generated checkpoint for height {height}")
 
-    with open("checkpoints.txt", "w") as f:
-        f.write("\n".join(checkpoints))
+    with open(OUTPUT_FILE_NAME, "w", newline="") as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerows(checkpoints)
 
-    log.info("Checkpoints generated and saved to checkpoints.txt")
+    log.info(f"Checkpoints generated and saved to {OUTPUT_FILE_NAME}")
 
 
 async def main() -> None:
