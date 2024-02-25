@@ -1,4 +1,5 @@
 DAEMON_RPC_HOST = "localhost"
 DAEMON_RPC_PORT = 6969
 DAEMON_RPC_SSL = False
-BLOCK_STEP = 2500
+BLOCK_STEP = 1
+OUTPUT_FILE_NAME = "checkpoints.csv"
