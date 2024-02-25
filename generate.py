@@ -29,7 +29,7 @@ except ImportError:
     DAEMON_RPC_HOST = "localhost"
     DAEMON_RPC_PORT = 6969
     DAEMON_RPC_SSL = False
-    BLOCK_STEP = 1
+    BLOCK_STEP = 1000
     OUTPUT_FILE_NAME = "checkpoints.csv"
 
 DAEMON_RPC_URL = (
