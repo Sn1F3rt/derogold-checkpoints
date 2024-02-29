@@ -21,7 +21,6 @@ try:
         DAEMON_RPC_HOST,
         DAEMON_RPC_PORT,
         DAEMON_RPC_SSL,
-        BLOCK_STEP,
         OUTPUT_FILE_NAME,
     )
 
@@ -29,7 +28,6 @@ except ImportError:
     DAEMON_RPC_HOST = "localhost"
     DAEMON_RPC_PORT = 6969
     DAEMON_RPC_SSL = False
-    BLOCK_STEP = 1000
     OUTPUT_FILE_NAME = "checkpoints.csv"
 
 DAEMON_RPC_URL = (
@@ -109,16 +107,13 @@ async def generate_checkpoints() -> None:
     current_height = await get_height()
     log.info(f"Current height: {current_height}")
 
-    checkpoints = []
-
-    for height in range(0, current_height, BLOCK_STEP):
-        block_hash = await get_block_hash_by_height(height)
-        checkpoints.append((height, block_hash))
-        log.info(f"Generated checkpoint for height {height}")
-
     with open(OUTPUT_FILE_NAME, "w", newline="") as csvfile:
         csvwriter = csv.writer(csvfile)
-        csvwriter.writerows(checkpoints)
+
+        for height in range(0, current_height):
+            block_hash = await get_block_hash_by_height(height)
+            csvwriter.writerow([height, block_hash])
+            log.info(f"Generated checkpoint for height {height}")
 
     log.info(f"Checkpoints generated and saved to {OUTPUT_FILE_NAME}")
 
