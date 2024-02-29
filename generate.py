@@ -1,10 +1,11 @@
-import csv
 import json
 import logging
 import asyncio
 from contextlib import contextmanager
 
+import aiocsv
 import aiohttp
+import aiofiles
 
 try:
     # noinspection PyUnresolvedReferences
@@ -107,12 +108,12 @@ async def generate_checkpoints() -> None:
     current_height = await get_height()
     log.info(f"Current height: {current_height}")
 
-    with open(OUTPUT_FILE_NAME, "w", newline="") as csvfile:
-        csvwriter = csv.writer(csvfile)
+    async with aiofiles.open(OUTPUT_FILE_NAME, "w", encoding="utf-8", newline="") as f:
+        writer = aiocsv.AsyncWriter(f)
 
         for height in range(0, current_height):
             block_hash = await get_block_hash_by_height(height)
-            csvwriter.writerow([height, block_hash])
+            await writer.writerow([height, block_hash])
             log.info(f"Generated checkpoint for height {height}")
 
     log.info(f"Checkpoints generated and saved to {OUTPUT_FILE_NAME}")
