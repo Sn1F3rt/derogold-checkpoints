@@ -1,7 +1,4 @@
-__title__ = "DeroGold Checkpoints Generator"
-__version__ = "1.0.3b"
-__author__ = 'Sayan "Sn1F3rt" Bhattacharyya'
-__license__ = "MIT"
+__version__ = "1.0.4b"
 
 import json
 from typing import AnyStr
@@ -27,7 +24,7 @@ else:
 
 DEFAULT_DAEMON_RPC_HOST: str = "localhost"
 DEFAULT_DAEMON_RPC_PORT: int = 6969
-DEFAULT_DAEMON_RPC_SSL: bool = False
+DEFAULT_DAEMON_RPC_SSL: str = "False"
 DEFAULT_OUTPUT_FILE_NAME: str = "checkpoints.csv"
 
 OUTPUT_FILE_NAME: str = AnyStr
@@ -40,7 +37,8 @@ def load_from_env():
     return (
         config.get("DAEMON_RPC_HOST", DEFAULT_DAEMON_RPC_HOST),
         int(config.get("DAEMON_RPC_PORT", DEFAULT_DAEMON_RPC_PORT)),
-        bool(config.get("DAEMON_RPC_SSL", DEFAULT_DAEMON_RPC_SSL)),
+        config.get("DAEMON_RPC_SSL", DEFAULT_DAEMON_RPC_SSL).lower()
+        in ("true", "1"),
         config.get("OUTPUT_FILE_NAME", DEFAULT_OUTPUT_FILE_NAME),
     )
 
@@ -110,26 +108,27 @@ async def get_block_hash_by_height(height: int) -> dict:
     ]["hash"]
 
 
-async def generate_checkpoints() -> None:
+async def generate_checkpoints(check_existing: bool = False) -> None:
     log = logging.getLogger()
 
-    try:
-        log.info("Checking for existing checkpoints...")
-        async with aiofiles.open(
-            OUTPUT_FILE_NAME, "r", encoding="utf-8", newline=""
-        ) as f:
-            entry = (await f.readlines())[-1]
-            height, _ = entry.split(",")
+    if check_existing:
+        try:
+            log.info("Checking for existing checkpoints...")
+            async with aiofiles.open(
+                OUTPUT_FILE_NAME, "r", encoding="utf-8", newline=""
+            ) as f:
+                entry = (await f.readlines())[-1]
+                height, _ = entry.split(",")
 
-            log.info(f"Checkpoints found. Last checkpoint: {height}")
+                log.info(f"Checkpoints found. Last checkpoint: {height}")
 
-    except FileNotFoundError:
-        log.info("No existing checkpoints found.")
+        except FileNotFoundError:
+            log.info("No existing checkpoints found.")
 
-    except Exception as e:
-        log.exception(
-            f"An error occurred while checking for existing checkpoints: {e}"
-        )
+        except Exception as e:
+            log.exception(
+                f"An error occurred while checking for existing checkpoints: {e}"
+            )
 
     log.info("Generating checkpoints...")
 
@@ -163,16 +162,42 @@ async def generate_checkpoints() -> None:
 
 
 @click.command()
-@click.option("--daemon-rpc-host", type=click.STRING, required=False)
-@click.option("--daemon-rpc-port", type=click.INT, required=False)
-@click.option("--daemon-rpc-ssl", type=click.BOOL, required=False)
-@click.option("--output-file-name", type=click.STRING, required=False)
+@click.option("--version", is_flag=True, help="Show the version and exit")
+@click.option(
+    "--check-existing", is_flag=True, help="Check for existing checkpoints"
+)
+@click.option(
+    "--daemon-rpc-host",
+    type=click.STRING,
+    help="Daemon RPC host address (e.g. localhost)",
+)
+@click.option(
+    "--daemon-rpc-port", type=click.INT, help="Daemon RPC port (usually 6969)"
+)
+@click.option("--daemon-rpc-ssl", is_flag=True, help="Use SSL for daemon RPC")
+@click.option(
+    "--output-file-name",
+    type=click.STRING,
+    help="Output file name (e.g. checkpoints.csv)",
+)
 async def main(
+    version: bool,
+    check_existing: bool,
     daemon_rpc_host: str,
     daemon_rpc_port: int,
     daemon_rpc_ssl: bool,
     output_file_name: str,
 ) -> None:
+    """
+    A python script to generate checkpoints for the DeroGold blockchain.
+
+    This script is authored by Sayan "Sn1F3rt" Bhattacharyya and is licensed under the MIT License.
+
+    """
+    if version:
+        click.echo(f"DeroGold Checkpoints Generator v{__version__}")
+        return
+
     with setup_logging():
         _daemon_rpc_host, _daemon_rpc_port, _daemon_rpc_ssl, _output_file_name = (
             load_from_env()
@@ -187,7 +212,7 @@ async def main(
         OUTPUT_FILE_NAME = output_file_name or _output_file_name
         DAEMON_RPC_URL = f"http{'s' if daemon_rpc_ssl else ''}://{daemon_rpc_host}:{daemon_rpc_port}"
 
-        await generate_checkpoints()
+        await generate_checkpoints(check_existing)
 
 
 if __name__ == "__main__":

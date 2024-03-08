@@ -39,10 +39,10 @@ The script can be configured using the following methods:
 1. Environment variables - Create a `.env` file with the options that you want to set. For example:
 
     ```shell
-    DAEMON_RPC_HOST="localhost"
-    DAEMON_RPC_PORT=20206
-    DAEMON_RPC_SSL="localhost"
-    OUTPUT_FILE_NAME="localhost"
+    DAEMON_RPC_HOST="localhost"  # Daemon RPC host address (e.g. localhost)
+    DAEMON_RPC_PORT=6969  # Daemon RPC port (usually 6969)
+    DAEMON_RPC_SSL=0  # Use SSL for daemon RPC (0 for http, 1 for https)
+    OUTPUT_FILE_NAME="checkpoints.csv"  # Output file name (e.g. checkpoints.csv)
     ```
 
 2. Command-line arguments - You can run the script with the `--help` option to see the available options.
