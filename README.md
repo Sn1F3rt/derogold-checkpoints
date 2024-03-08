@@ -19,15 +19,20 @@ A python script to generate checkpoints for the DeroGold blockchain.
 
 - Git
 - Python 3.8 or higher (tested on 3.11)
-- [DeroGold daemon (v0.7.1 or higher)](https://github.com/derogold/derogold/releases/tag/v0.7.1)
+- [DeroGold daemon (v0.7.1 or higher)](https://github.com/derogold/derogold/releases/latest)
 
 ## Installation
 
 ```shell
+# Clone the repository
 git clone https://github.com/Sn1F3rt/derogold-checkpoints-generator.git
+# Switch to the project directory
 cd derogold-checkpoints-generator
+# Create a virtual environment
 python -m venv .venv
+# Activate the virtual environment
 source .venv/bin/activate
+# Install the dependencies
 pip install -r requirements.txt
 ```
 
