@@ -1,7 +1,7 @@
 __version__ = "1.0.4b"
 
 import json
-from typing import AnyStr
+from typing import Optional, AnyStr
 import logging
 import asyncio
 from contextlib import contextmanager
@@ -108,7 +108,7 @@ async def get_block_hash_by_height(height: int) -> dict:
     ]["hash"]
 
 
-async def generate_checkpoints(check_existing: bool = False) -> None:
+async def generate_checkpoints(check_existing: Optional[bool] = False) -> None:
     log = logging.getLogger()
 
     if check_existing:
