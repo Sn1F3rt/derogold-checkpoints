@@ -1,6 +1,6 @@
-# derogold-checkpoints
+# DeroGold Checkpoints Generator
 
-[![License](https://img.shields.io/github/license/Sn1F3rt/derogold-checkpoints)](LICENSE)
+[![License](https://img.shields.io/github/license/Sn1F3rt/derogold-checkpoints)](LICENSE) 
 
 ## Table of Contents
 
@@ -24,16 +24,32 @@ A python script to generate checkpoints for the DeroGold blockchain.
 ## Installation
 
 ```shell
-git clone https://github.com/Sn1F3rt/derogold-checkpoints.git
-cd derogold-checkpoints
+git clone https://github.com/Sn1F3rt/derogold-checkpoints-generator.git
+cd derogold-checkpoints-generator
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+
 ## Configuration (Optional)
 
-Make a copy of the `config.example.py` file and rename it to `config.py`. Edit the parameters as per your requirements.
+The script can be configured using the following methods:
+
+1. Environment variables - Create a `.env` file with the options that you want to set. For example:
+
+    ```shell
+    DAEMON_RPC_HOST="localhost"
+    DAEMON_RPC_PORT=20206
+    DAEMON_RPC_SSL="localhost"
+    OUTPUT_FILE_NAME="localhost"
+    ```
+
+2. Command-line arguments - You can run the script with the `--help` option to see the available options.
+
+    ```shell
+    python generate.py --help
+    ```
 
 ## Usage
 

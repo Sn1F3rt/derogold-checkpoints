@@ -1,11 +1,19 @@
+__title__ = "DeroGold Checkpoints Generator"
+__version__ = "1.0.3b"
+__author__ = 'Sayan "Sn1F3rt" Bhattacharyya'
+__license__ = "MIT"
+
 import json
+from typing import AnyStr
 import logging
 import asyncio
 from contextlib import contextmanager
 
+import asyncclick as click
 import aiocsv
 import aiohttp
 import aiofiles
+from dotenv import dotenv_values
 
 try:
     # noinspection PyUnresolvedReferences
@@ -17,23 +25,24 @@ except ImportError:
 else:
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-try:
-    from config import (
-        DAEMON_RPC_HOST,
-        DAEMON_RPC_PORT,
-        DAEMON_RPC_SSL,
-        OUTPUT_FILE_NAME,
+DEFAULT_DAEMON_RPC_HOST: str = "localhost"
+DEFAULT_DAEMON_RPC_PORT: int = 6969
+DEFAULT_DAEMON_RPC_SSL: bool = False
+DEFAULT_OUTPUT_FILE_NAME: str = "checkpoints.csv"
+
+OUTPUT_FILE_NAME: str = AnyStr
+DAEMON_RPC_URL: str = AnyStr
+
+
+def load_from_env():
+    config: dict = dotenv_values(".env")
+
+    return (
+        config.get("DAEMON_RPC_HOST", DEFAULT_DAEMON_RPC_HOST),
+        int(config.get("DAEMON_RPC_PORT", DEFAULT_DAEMON_RPC_PORT)),
+        bool(config.get("DAEMON_RPC_SSL", DEFAULT_DAEMON_RPC_SSL)),
+        config.get("OUTPUT_FILE_NAME", DEFAULT_OUTPUT_FILE_NAME),
     )
-
-except ImportError:
-    DAEMON_RPC_HOST = "localhost"
-    DAEMON_RPC_PORT = 6969
-    DAEMON_RPC_SSL = False
-    OUTPUT_FILE_NAME = "checkpoints.csv"
-
-DAEMON_RPC_URL = (
-    f"http{'s' if DAEMON_RPC_SSL else ''}://{DAEMON_RPC_HOST}:{DAEMON_RPC_PORT}"
-)
 
 
 @contextmanager
@@ -103,24 +112,81 @@ async def get_block_hash_by_height(height: int) -> dict:
 
 async def generate_checkpoints() -> None:
     log = logging.getLogger()
+
+    try:
+        log.info("Checking for existing checkpoints...")
+        async with aiofiles.open(
+            OUTPUT_FILE_NAME, "r", encoding="utf-8", newline=""
+        ) as f:
+            entry = (await f.readlines())[-1]
+            height, _ = entry.split(",")
+
+            log.info(f"Checkpoints found. Last checkpoint: {height}")
+
+    except FileNotFoundError:
+        log.info("No existing checkpoints found.")
+
+    except Exception as e:
+        log.exception(
+            f"An error occurred while checking for existing checkpoints: {e}"
+        )
+
     log.info("Generating checkpoints...")
 
-    current_height = await get_height()
-    log.info(f"Current height: {current_height}")
+    try:
+        current_height = await get_height()
+        log.info(f"Current height: {current_height}")
 
-    async with aiofiles.open(OUTPUT_FILE_NAME, "w", encoding="utf-8", newline="") as f:
-        writer = aiocsv.AsyncWriter(f)
+        if "height" in locals() and height < current_height:
+            start_height = height
+            log.info(f"Resuming from height {start_height}")
 
-        for height in range(0, current_height):
-            block_hash = await get_block_hash_by_height(height)
-            await writer.writerow([height, block_hash])
-            log.info(f"Generated checkpoint for height {height}")
+        else:
+            start_height = 0
 
-    log.info(f"Checkpoints generated and saved to {OUTPUT_FILE_NAME}")
+        async with aiofiles.open(
+            OUTPUT_FILE_NAME, "a", encoding="utf-8", newline=""
+        ) as f:
+            writer = aiocsv.AsyncWriter(f)
+
+            for height in range(start_height, current_height):
+                block_hash = await get_block_hash_by_height(height)
+                await writer.writerow([height, block_hash])
+                log.info(f"Generated checkpoint for height {height}")
+
+        log.info(f"Checkpoints generated and saved to {OUTPUT_FILE_NAME}")
+
+    except aiohttp.client_exceptions.ClientConnectorError:
+        log.exception("Could not connect to the daemon RPC. Exiting...")
+        log.info("Check if the DeroGold daemon is running and run the script again.")
+        log.info(f"Progress has been saved to {OUTPUT_FILE_NAME}.")
 
 
-async def main() -> None:
+@click.command()
+@click.option("--daemon-rpc-host", type=click.STRING, required=False)
+@click.option("--daemon-rpc-port", type=click.INT, required=False)
+@click.option("--daemon-rpc-ssl", type=click.BOOL, required=False)
+@click.option("--output-file-name", type=click.STRING, required=False)
+async def main(
+    daemon_rpc_host: str,
+    daemon_rpc_port: int,
+    daemon_rpc_ssl: bool,
+    output_file_name: str,
+) -> None:
     with setup_logging():
+        _daemon_rpc_host, _daemon_rpc_port, _daemon_rpc_ssl, _output_file_name = (
+            load_from_env()
+        )
+
+        daemon_rpc_host = daemon_rpc_host or _daemon_rpc_host
+        daemon_rpc_port = daemon_rpc_port or _daemon_rpc_port
+        daemon_rpc_ssl = daemon_rpc_ssl or _daemon_rpc_ssl
+
+        global OUTPUT_FILE_NAME, DAEMON_RPC_URL
+
+        OUTPUT_FILE_NAME = output_file_name or _output_file_name
+        DAEMON_RPC_URL = f"http{'s' if daemon_rpc_ssl else ''}://{daemon_rpc_host}:{daemon_rpc_port}"
+
         await generate_checkpoints()
 
 
