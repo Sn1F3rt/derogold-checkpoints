@@ -119,6 +119,7 @@ async def generate_checkpoints(check_existing: Optional[bool] = False) -> None:
             ) as f:
                 entry = (await f.readlines())[-1]
                 height, _ = entry.split(",")
+                height = int(height)
 
                 log.info(f"Checkpoints found. Last checkpoint: {height}")
 
